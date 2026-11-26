@@ -37,11 +37,13 @@ def _keywords(text, n=3):
 
 
 def _icon_for(text):
-    low = text.lower()
+    words = set(re.findall(r"[a-z]+", text.lower()))
+    best, best_hits = "book", 0
     for icon, keys in ICONS.items():
-        if any(k in low for k in keys):
-            return icon
-    return "book"
+        hits = sum(1 for k in keys if k in words)
+        if hits > best_hits:
+            best, best_hits = icon, hits
+    return best
 
 
 def _short(sentence, limit=90):
