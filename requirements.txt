@@ -7,4 +7,9 @@ numpy>=1.24
 moviepy==2.1.1
 opencv-python-headless>=4.8
 matplotlib>=3.8
-# kokoro>=0.9  # optional: natural TTS (pip install kokoro soundfile)
+edge-tts>=6.1.9          # Microsoft neural TTS — primary voice engine
+# kokoro>=0.9            # optional: offline Kokoro TTS (pip install kokoro soundfile misaki[en])
+# pdfplumber>=0.10       # optional: PDF ingestion
+# python-docx>=1.0       # optional: DOCX ingestion
+# trafilatura>=1.6       # optional: URL ingestion
+# pydantic>=2.0          # optional: LLM output validation

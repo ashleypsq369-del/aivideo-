@@ -1,22 +1,26 @@
-"""Narration engine.
+"""Narration engines.
 
-Production engine: kokoro  (natural, human-sounding — pip install kokoro soundfile)
-Fallback engine:   espeak  (robotic but always available)
-Test engine:       mock    (silent tones — NEVER use in production video)
+Priority / fallback chain (auto mode):
+  1. edge_tts  — Microsoft neural voices, human-sounding, free, no model download
+                 pip install edge-tts   (already installed)
+  2. kokoro    — offline Kokoro-82M, Apache 2.0
+                 pip install kokoro soundfile misaki[en]
+  3. espeak    — robotic fallback, always available on Linux
+  4. mock      — silent click-track, TEST ONLY — never use in production
 
-The engine is chosen by:
-  1. The `engine` argument passed to synthesize()
-  2. The AIVIDEO_TTS_ENGINE environment variable
-  3. Auto-detect: try kokoro, fall back to espeak, fall back to mock
+Edge TTS voices (best quality, recommended):
+  en-US-AriaNeural       — warm American female  (default)
+  en-US-GuyNeural        — natural American male
+  en-US-JennyNeural      — friendly American female
+  en-GB-SoniaNeural      — British female
+  en-GB-RyanNeural       — British male
+  en-AU-NatashaNeural    — Australian female
+  en-IN-NeerjaNeural     — Indian female
 
-Voices (Kokoro):
-  af_heart   – warm, friendly American female  (default)
-  af_sky     – brighter American female
-  am_michael – authoritative American male
-  am_adam    – calm American male
-  bf_emma    – British female
-  bm_george  – British male
+Set AIVIDEO_TTS_ENGINE=edge_tts or kokoro or espeak in .env
+Set AIVIDEO_TTS_VOICE=en-US-GuyNeural (etc.) to change voice
 """
+import asyncio
 import math
 import os
 import shutil
@@ -35,7 +39,7 @@ def duration_for(text: str) -> float:
 # ── mock (test only) ──────────────────────────────────────────────────────────
 
 def synth_mock(text: str, path: str, **_) -> str:
-    """Silent click-track. For pipeline smoke-testing only."""
+    """Silent click-track. For pipeline smoke-testing ONLY."""
     n     = int(duration_for(text) * RATE)
     words = max(1, len(text.split()))
     beat  = n // words
@@ -52,35 +56,58 @@ def synth_mock(text: str, path: str, **_) -> str:
     return path
 
 
-# ── espeak (robotic fallback) ─────────────────────────────────────────────────
+# ── edge_tts (Microsoft Neural — primary production engine) ──────────────────
 
-def synth_espeak(text: str, path: str, voice: str = "en-us", **_) -> str:
+def synth_edge_tts(text: str, path: str,
+                   voice: str = "en-US-AriaNeural", **_) -> str:
+    """Human-quality speech via Microsoft Edge TTS (free, no model download).
+
+    Requires: pip install edge-tts
+    Voices:   en-US-AriaNeural, en-US-GuyNeural, en-GB-SoniaNeural, etc.
+    Output:   24 kHz mono WAV (resampled from edge-tts MP3 via FFmpeg)
+    """
+    try:
+        import edge_tts as _edge
+    except ImportError:
+        raise RuntimeError("edge-tts not installed. Run: pip install edge-tts")
+
     from .video import _find
-    exe = shutil.which("espeak-ng") or shutil.which("espeak")
-    if not exe:
-        raise RuntimeError(
-            "espeak-ng not found. Install it: "
-            "Windows: choco install espeak-ng  |  Linux: apt install espeak-ng"
-        )
-    tmp = path + ".raw.wav"
-    subprocess.run([exe, "-v", voice, "-w", tmp, text], check=True)
     ffmpeg = _find("ffmpeg")
-    subprocess.run([ffmpeg, "-y", "-loglevel", "error",
-                    "-i", tmp, "-ar", str(RATE), "-ac", "1", path], check=True)
-    os.remove(tmp)
+
+    # edge-tts writes an MP3; we convert to 24 kHz mono WAV
+    tmp_mp3 = path + ".tmp.mp3"
+
+    async def _speak():
+        comm = _edge.Communicate(text, voice)
+        await comm.save(tmp_mp3)
+
+    # Run async in a fresh event loop (safe even inside a thread)
+    try:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(_speak())
+    finally:
+        loop.close()
+
+    # Convert MP3 → 24 kHz mono WAV
+    subprocess.run(
+        [ffmpeg, "-y", "-loglevel", "error",
+         "-i", tmp_mp3,
+         "-ar", str(RATE), "-ac", "1",
+         "-acodec", "pcm_s16le", path],
+        check=True
+    )
+    os.remove(tmp_mp3)
     return path
 
 
-# ── Kokoro (natural, production) ──────────────────────────────────────────────
+# ── kokoro (offline Kokoro-82M) ───────────────────────────────────────────────
 
-_KOKORO_PIPE = None   # module-level cache so the model loads only once
+_KOKORO_PIPE = None
 
 
 def synth_kokoro(text: str, path: str, voice: str = "af_heart", **_) -> str:
-    """Natural speech via Kokoro-82M (Apache 2.0).
-
-    Voices: af_heart, af_sky, am_michael, am_adam, bf_emma, bm_george
-    Requires: pip install kokoro soundfile
+    """Natural offline speech via Kokoro-82M (Apache 2.0).
+    Requires: pip install kokoro soundfile misaki[en]
     """
     global _KOKORO_PIPE
     try:
@@ -89,80 +116,103 @@ def synth_kokoro(text: str, path: str, voice: str = "af_heart", **_) -> str:
         from kokoro import KPipeline
     except ImportError as exc:
         raise RuntimeError(
-            "Kokoro not installed. Run: pip install kokoro soundfile\n"
-            f"Original error: {exc}"
+            f"Kokoro deps missing: {exc}. Run: pip install kokoro soundfile misaki[en]"
         ) from exc
 
     if _KOKORO_PIPE is None:
-        # lang_code: 'a' = American English, 'b' = British English
         lang = "b" if voice.startswith("b") else "a"
         _KOKORO_PIPE = KPipeline(lang_code=lang)
 
-    # Re-create pipeline if voice language changed
-    lang = "b" if voice.startswith("b") else "a"
-    pipe = _KOKORO_PIPE
-
-    chunks = []
-    for _, _, audio in pipe(text, voice=voice):
-        chunks.append(audio)
-
+    chunks = [audio for _, _, audio in _KOKORO_PIPE(text, voice=voice)]
     if not chunks:
         raise RuntimeError("Kokoro returned no audio chunks.")
 
-    audio_data = np.concatenate(chunks)
-    sf.write(path, audio_data, RATE)
+    import soundfile as sf
+    import numpy as np
+    sf.write(path, np.concatenate(chunks), RATE)
+    return path
+
+
+# ── espeak (robotic fallback) ─────────────────────────────────────────────────
+
+def synth_espeak(text: str, path: str, voice: str = "en-us", **_) -> str:
+    from .video import _find
+    exe = shutil.which("espeak-ng") or shutil.which("espeak")
+    if not exe:
+        raise RuntimeError(
+            "espeak-ng not found. "
+            "Windows: winget install espeak-ng  |  Linux: apt install espeak-ng"
+        )
+    ffmpeg = _find("ffmpeg")
+    tmp = path + ".raw.wav"
+    subprocess.run([exe, "-v", voice, "-w", tmp, text], check=True)
+    subprocess.run([ffmpeg, "-y", "-loglevel", "error",
+                    "-i", tmp, "-ar", str(RATE), "-ac", "1", path], check=True)
+    os.remove(tmp)
     return path
 
 
 # ── auto-detect ───────────────────────────────────────────────────────────────
 
 def _detect_engine() -> str:
-    """Return the best available engine.
-    Uses pip metadata to check for kokoro — never imports it (avoids model-download hang)."""
+    """Return best available engine — never imports the package itself."""
     env = os.environ.get("AIVIDEO_TTS_ENGINE", "").lower()
-    if env in ("kokoro", "espeak", "mock"):
+    if env in ("edge_tts", "kokoro", "espeak", "mock"):
         return env
-    # Check kokoro via pip metadata only (no import, no timeout risk)
+
+    import importlib.metadata
+
+    # 1. edge-tts (best quality, no model download)
     try:
-        import importlib.metadata
-        importlib.metadata.version("kokoro")
-        return "kokoro"   # installed — use it
+        importlib.metadata.version("edge-tts")
+        return "edge_tts"
     except Exception:
         pass
+
+    # 2. kokoro (offline, needs model weights on first run)
+    try:
+        importlib.metadata.version("kokoro")
+        return "kokoro"
+    except Exception:
+        pass
+
+    # 3. espeak (robotic but always works)
     if shutil.which("espeak-ng") or shutil.which("espeak"):
         return "espeak"
+
     return "mock"
 
 
+# ── dispatch ──────────────────────────────────────────────────────────────────
+
 ENGINES = {
-    "mock":   synth_mock,
-    "espeak": synth_espeak,
-    "kokoro": synth_kokoro,
+    "mock":     synth_mock,
+    "espeak":   synth_espeak,
+    "kokoro":   synth_kokoro,
+    "edge_tts": synth_edge_tts,
 }
 
 DEFAULT_VOICES = {
-    "kokoro": os.environ.get("AIVIDEO_TTS_VOICE", "af_heart"),
-    "espeak": "en-us",
-    "mock":   None,
+    "edge_tts": os.environ.get("AIVIDEO_TTS_VOICE", "en-US-AriaNeural"),
+    "kokoro":   os.environ.get("AIVIDEO_TTS_VOICE", "af_heart"),
+    "espeak":   "en-us",
+    "mock":     None,
 }
 
 
-def synthesize(text: str, path: str, engine: str = "auto",
+def synthesize(text: str, path: str,
+               engine: str = "auto",
                voice: str | None = None) -> str:
-    """Synthesise `text` to a 24 kHz mono WAV at `path`.
+    """Synthesise text → 24 kHz mono WAV.
 
-    engine:  "kokoro" | "espeak" | "mock" | "auto"
-             "auto" picks the best available engine.
-    voice:   engine-specific voice string; None = use default.
-    Returns: `path`
+    engine: "edge_tts" | "kokoro" | "espeak" | "mock" | "auto"
+    voice:  engine-specific voice name; None = use default
     """
-    if engine == "auto":
+    if engine in ("", None, "auto"):
         engine = _detect_engine()
 
     if engine not in ENGINES:
-        raise ValueError(
-            f"Unknown TTS engine '{engine}'. Choose from {list(ENGINES)}"
-        )
+        raise ValueError(f"Unknown engine '{engine}'. Choose from {list(ENGINES)}")
 
     if voice is None:
         voice = DEFAULT_VOICES.get(engine)
@@ -170,17 +220,30 @@ def synthesize(text: str, path: str, engine: str = "auto",
     kwargs = {"voice": voice} if voice else {}
 
     try:
-        return ENGINES[engine](text, path, **kwargs)
+        result = ENGINES[engine](text, path, **kwargs)
+        print(f"[tts] {engine} ({voice}) → {os.path.basename(path)}")
+        return result
     except Exception as exc:
-        # Fallback chain: kokoro -> espeak -> mock
-        if engine == "kokoro":
-            print(f"[tts] Kokoro failed ({exc}), trying espeak...")
+        # Fallback chain
+        if engine == "edge_tts":
+            print(f"[tts] edge_tts failed ({exc}), trying kokoro...")
             try:
-                return synth_espeak(text, path)
+                return synthesize(text, path, engine="kokoro", voice=None)
             except Exception as exc2:
-                print(f"[tts] eSpeak failed ({exc2}), using mock.")
+                print(f"[tts] kokoro failed ({exc2}), trying espeak...")
+                try:
+                    return synthesize(text, path, engine="espeak", voice=None)
+                except Exception as exc3:
+                    print(f"[tts] espeak failed ({exc3}), using mock (silent).")
+                    return synth_mock(text, path)
+        elif engine == "kokoro":
+            print(f"[tts] kokoro failed ({exc}), trying espeak...")
+            try:
+                return synthesize(text, path, engine="espeak", voice=None)
+            except Exception as exc2:
+                print(f"[tts] espeak failed ({exc2}), using mock.")
                 return synth_mock(text, path)
         elif engine == "espeak":
-            print(f"[tts] eSpeak failed ({exc}), using mock.")
+            print(f"[tts] espeak failed ({exc}), using mock.")
             return synth_mock(text, path)
         raise
