@@ -109,6 +109,8 @@ def _dialogue_snippet(title, narration, host_a="Alex", host_b="Jordan"):
 
 def plan_deep_dive(text, topic, length="default"):
     sents = _sentences(text)
+    if not sents:
+        raise ValueError("No text to plan from.")
     kws   = _keywords(text, 3)
     topic = topic or (" ".join(w.capitalize() for w in kws[:2]) or "Lesson")
     spc   = LENGTH_SCENES.get(length, 3)
@@ -319,3 +321,7 @@ def plan(text, topic=None, use_claude=False, fmt="deep_dive", length="default", 
             print(f"[planner] Claude failed ({e}); falling back to rules.")
     planner_fn = FORMAT_PLANNERS.get(fmt, plan_deep_dive)
     return planner_fn(text, topic, length)
+
+# Backwards-compat alias used by tests
+def plan_with_rules(text, topic=None, length="default"):
+    return plan_deep_dive(text, topic, length)
