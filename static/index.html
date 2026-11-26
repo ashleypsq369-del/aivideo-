@@ -2,106 +2,924 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>aivideo Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 <style>
-:root{--paper:#F2F5F3;--ink:#14213D;--muted:#5B6578;--green:#1F6F5C;--gold:#E3A72F;--line:#D3DBD6;--white:#fff;
---serif:"Iowan Old Style",Palatino,"Palatino Linotype",Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-@media (prefers-color-scheme:dark){:root{--paper:#0F1722;--ink:#E8EDF3;--muted:#9AA6B8;--green:#4FB89C;--line:#26324A;--white:#172033}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--sans)}
-header{padding:28px clamp(16px,4vw,48px) 8px}
-h1{font:600 clamp(28px,4vw,42px)/1.1 var(--serif);margin:0 0 6px}
-header p{margin:0;color:var(--muted);max-width:60ch}
-main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(16px,3vw,40px);padding:20px clamp(16px,4vw,48px) 60px}
-@media(max-width:900px){main{grid-template-columns:1fr}}
-label{display:block;font-weight:600;margin:14px 0 6px}
-textarea,input,select{width:100%;font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-textarea{min-height:260px;resize:vertical}
-:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-button{font:600 16px var(--sans);background:var(--green);color:#fff;border:0;border-radius:8px;padding:12px 20px;margin-top:18px;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}
-.btn2{background:transparent;color:var(--green);border:1px solid var(--green);margin-left:8px}
-#status{margin-top:14px;color:var(--muted);min-height:1.5em}
-#empty{border:1px dashed var(--line);border-radius:12px;padding:40px 24px;color:var(--muted)}
-video{width:100%;border-radius:12px;background:#000;aspect-ratio:16/9}
-.timeline{display:flex;height:34px;margin:16px 0 4px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
-.seg{display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;background:var(--green);border-right:2px solid var(--paper);cursor:pointer;min-width:0;overflow:hidden}
-.seg.quiz{background:var(--gold);color:#14213D}.seg.active{outline:3px solid var(--ink);outline-offset:-3px}
-.scenes{margin:18px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
-.scenes li{padding:14px 0;border-bottom:1px solid var(--line)}
-.scenes h3{font:600 20px var(--serif);margin:0}
-.meta{color:var(--muted);font-size:13px}
-.scenes ul{margin:6px 0 0 18px;padding:0}
-.narr{margin:8px 0 0;color:var(--muted);font-style:italic}
+:root{
+  --bg:#0D1424;--surface:#111E35;--card:#141E32;--border:#1E2D45;
+  --accent:#38BDF8;--gold:#FBB724;--green:#4ADE80;--red:#F87171;--purple:#A78BFA;
+  --text:#F1F5F9;--muted:#94A3B8;--dim:#2D3F58;
+  --r:10px;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font:15px/1.6 var(--sans);display:flex;flex-direction:column}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:14px;padding:0 24px;height:52px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font:800 18px var(--sans);color:var(--accent);letter-spacing:-.3px}
+.logo span{color:var(--gold)}
+.topbar-sub{color:var(--muted);font-size:12px}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.claude-pill{font-size:11px;padding:3px 10px;border-radius:999px;
+  background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3);display:none}
+.claude-pill.on{display:block}
+
+/* layout */
+.workspace{display:grid;grid-template-columns:360px 1fr 300px;flex:1;min-height:0;overflow:hidden}
+@media(max-width:1080px){.workspace{grid-template-columns:320px 1fr}}
+@media(max-width:720px){.workspace{grid-template-columns:1fr;overflow:auto;height:auto}}
+
+/* panels */
+.lpanel,.rpanel{background:var(--surface);overflow-y:auto;display:flex;flex-direction:column}
+.lpanel{border-right:1px solid var(--border)}
+.rpanel{border-left:1px solid var(--border)}
+.phead{font:700 11px var(--sans);text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);padding:16px 18px 8px;flex-shrink:0}
+
+/* form */
+.lbody{flex:1;padding:0 16px 20px;display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+label{font:600 12px var(--sans);color:var(--muted);display:block;margin-bottom:4px}
+textarea,input,select{width:100%;font:inherit;color:var(--text);background:var(--dim);
+  border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;transition:border .15s}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
+textarea{min-height:160px;resize:vertical;line-height:1.55}
+
+/* pills */
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:5px 14px;border-radius:999px;border:1px solid var(--border);
+  background:transparent;font:600 12px var(--sans);cursor:pointer;color:var(--muted);
+  transition:all .15s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--accent)}
+.pill.on{background:var(--accent);border-color:var(--accent);color:#0A1223}
+
+/* generate button */
+.gen-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px;background:var(--accent);color:#0A1223;border:0;border-radius:var(--r);
+  font:700 14px var(--sans);cursor:pointer;transition:all .15s;width:100%}
+.gen-btn:hover{filter:brightness(1.08)}
+.gen-btn:disabled{opacity:.45;cursor:wait}
+.cust-btn{width:100%;padding:9px;background:transparent;color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r);font:600 13px var(--sans);
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.cust-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* progress */
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);width:0;transition:width .4s}
+#statusMsg{font-size:12px;color:var(--muted);min-height:1.3em;text-align:center}
+
+/* viewer */
+.viewer{overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;height:100%;color:var(--dim);text-align:center;padding:40px}
+.empty .eicon{font-size:52px}
+.empty h2{font-size:22px;color:var(--muted)}
+.empty p{max-width:34ch;font-size:13px;color:var(--dim);line-height:1.6}
+
+/* tabs */
+.tabs{display:flex;gap:2px;background:var(--dim);border-radius:var(--r);padding:3px;flex-wrap:wrap}
+.tab{padding:6px 13px;border-radius:7px;font:600 12px var(--sans);cursor:pointer;
+  color:var(--muted);border:0;background:transparent;transition:all .15s;white-space:nowrap}
+.tab.on{background:var(--accent);color:#0A1223}
+.tp{display:none}.tp.on{display:block}
+
+/* video */
+video{width:100%;border-radius:var(--r);background:#000;aspect-ratio:16/9;display:block}
+.timeline{display:flex;height:30px;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin:10px 0 4px}
+.seg{flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+  color:#fff;background:var(--accent);border-right:1px solid var(--bg);cursor:pointer;
+  min-width:0;overflow:hidden;transition:filter .1s;position:relative}
+.seg:hover{filter:brightness(1.2)}
+.seg.quiz{background:var(--gold);color:#0A1223}
+.seg.summary{background:var(--green);color:#0A1223}
+.seg.flashcard{background:var(--purple)}
+.seg.on{outline:2px solid #fff;outline-offset:-2px}
+.tl-info{font-size:11px;color:var(--muted)}
+
+/* scene list */
+.slist{display:flex;flex-direction:column;gap:10px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;border-left:4px solid var(--accent)}
+.scard.quiz{border-left-color:var(--gold)}
+.scard.summary{border-left-color:var(--green)}
+.scard.flashcard{border-left-color:var(--purple)}
+.scard h3{font:600 16px var(--sans);margin-bottom:4px}
+.scard-meta{font-size:11px;color:var(--dim);margin-bottom:7px}
+.scard ul{margin:0 0 7px 16px;font-size:13px}
+.scard ul li{margin-bottom:3px}
+.takeaway{font-size:12px;color:var(--accent);padding:6px 9px;
+  background:rgba(56,189,248,.07);border-radius:6px;border-left:2px solid var(--accent)}
+.dialogue{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.dline{display:flex;gap:8px;align-items:flex-start}
+.dname{font:700 11px var(--sans);text-transform:uppercase;min-width:50px;padding-top:3px;letter-spacing:.04em}
+.host-a .dname{color:var(--accent)}.host-b .dname{color:var(--gold)}
+.dtext{background:var(--dim);border-radius:7px;padding:7px 11px;font-size:12px;flex:1;line-height:1.5}
+
+/* flashcards */
+.fcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.fci{perspective:600px;cursor:pointer;height:130px}
+.fci-inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}
+.fci.flip .fci-inner{transform:rotateY(180deg)}
+.fcf,.fcb{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:var(--r);
+  padding:12px;display:flex;align-items:center;justify-content:center;text-align:center}
+.fcf{background:var(--card);border:1px solid var(--accent);font:600 12px var(--sans);color:var(--accent)}
+.fcb{background:var(--accent);transform:rotateY(180deg);font:700 14px var(--sans);color:#0A1223}
+
+/* quiz */
+.qquestion{font:600 17px var(--sans);margin-bottom:14px;line-height:1.4}
+.qopts{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.qopt{padding:11px 15px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card);cursor:pointer;font-size:13px;text-align:left;transition:all .15s}
+.qopt:hover:not(.done){border-color:var(--accent);background:rgba(56,189,248,.07)}
+.qopt.correct{border-color:var(--green);background:rgba(74,222,128,.1);color:var(--green);font-weight:600}
+.qopt.wrong{border-color:var(--red);background:rgba(248,113,113,.08);color:var(--red)}
+
+/* mind map / infographic */
+.imgwrap{background:var(--card);border-radius:var(--r);overflow:hidden}
+.imgwrap img{width:100%;display:block}
+.igwrap img{width:100%;max-width:500px;display:block;margin:0 auto;border-radius:var(--r)}
+.rframe{width:100%;height:580px;border:none;border-radius:var(--r)}
+
+/* ── right studio panel ── */
+.rpanel{padding-bottom:20px}
+.studio-title{font:700 14px var(--sans);padding:14px 16px 2px}
+.studio-sub{font-size:11px;color:var(--muted);padding:0 16px 12px;border-bottom:1px solid var(--border)}
+.outgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:12px 14px}
+.oc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 8px;cursor:pointer;text-align:center;transition:all .15s}
+.oc:hover,.oc.on{border-color:var(--accent);background:rgba(56,189,248,.06)}
+.oc-icon{font-size:22px;margin-bottom:3px}
+.oc-name{font:600 11px var(--sans)}
+.oc-desc{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+.rstudio-sec{padding:10px 16px;border-top:1px solid var(--border)}
+.rstudio-sec-title{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);margin-bottom:8px}
+.dlbtn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 11px;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font:600 12px var(--sans);cursor:pointer;text-decoration:none;
+  transition:all .15s;margin-bottom:5px}
+.dlbtn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ══════════════════════════════════════════
+   CUSTOMISE VIDEO MODAL
+══════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
+  display:flex;align-items:center;justify-content:center;opacity:0;
+  pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#1A2540;border:1px solid var(--border);border-radius:16px;
+  width:min(680px,96vw);max-height:90vh;overflow-y:auto;
+  transform:translateY(16px);transition:transform .2s;padding:0}
+.overlay.open .modal{transform:translateY(0)}
+.mhead{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+.mhead h2{font:700 17px var(--sans);display:flex;align-items:center;gap:9px}
+.mclose{background:transparent;border:0;color:var(--muted);font-size:22px;
+  cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;transition:all .15s}
+.mclose:hover{background:var(--dim);color:var(--text)}
+.mbody{padding:20px 24px;display:flex;flex-direction:column;gap:22px}
+.msec-title{font:700 14px var(--sans);margin-bottom:12px}
+
+/* suggested topic chips */
+.topic-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.topic-chip{display:flex;align-items:center;gap:7px;padding:9px 16px;
+  background:var(--dim);border:1px solid var(--border);border-radius:var(--r);
+  cursor:pointer;font-size:13px;transition:all .15s;user-select:none}
+.topic-chip:hover{border-color:var(--accent)}
+.topic-chip.on{border-color:var(--accent);background:rgba(56,189,248,.1);color:var(--accent)}
+.topic-chip .chip-icon{font-size:16px}
+.custom-topic{margin-top:8px}
+.custom-topic label{display:flex;align-items:center;gap:7px;font:600 13px var(--sans);
+  color:var(--text);margin-bottom:8px}
+
+/* visual style cards */
+.style-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;
+  scrollbar-width:thin}
+.style-card{flex-shrink:0;width:130px;cursor:pointer;border-radius:var(--r);
+  overflow:hidden;border:2px solid var(--border);transition:all .15s;position:relative}
+.style-card:hover{border-color:var(--accent)}
+.style-card.on{border-color:var(--accent)}
+.style-card .sc-check{position:absolute;top:6px;right:6px;background:var(--accent);
+  color:#0A1223;border-radius:50%;width:20px;height:20px;display:none;
+  align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.style-card.on .sc-check{display:flex}
+.style-preview{height:76px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.sp-auto{background:linear-gradient(135deg,#0A1223,#1E3A5F)}
+.sp-classic{background:linear-gradient(135deg,#F0F4F8,#E2E8F0)}
+.sp-whiteboard{background:#fff;border-bottom:2px solid #ddd}
+.sp-kawaii{background:linear-gradient(135deg,#FDF2FB,#EDE9FE)}
+.style-name{font:700 12px var(--sans);padding:7px 10px;background:var(--card);text-align:center}
+
+/* format cards in modal */
+.fmt-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fmtc{background:var(--dim);border:2px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;cursor:pointer;transition:all .15s}
+.fmtc:hover{border-color:var(--accent)}
+.fmtc.on{border-color:var(--accent);background:rgba(56,189,248,.07)}
+.fmtc-name{font:700 13px var(--sans)}
+.fmtc-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+.fmtc-badge{font-size:10px;padding:2px 7px;border-radius:999px;background:var(--gold);
+  color:#0A1223;font-weight:700;margin-left:6px}
+
+/* review producer notes toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.toggle-row p{font-size:13px;color:var(--muted);max-width:42ch;line-height:1.5}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--dim);border-radius:999px;
+  cursor:pointer;transition:.2s}
+.toggle-slider:before{content:"";position:absolute;left:3px;top:3px;
+  width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.toggle input:checked + .toggle-slider{background:var(--accent)}
+.toggle input:checked + .toggle-slider:before{transform:translateX(20px)}
+
+/* AI usage bar */
+.ai-usage{display:flex;align-items:center;gap:14px;padding:14px 24px;
+  border-top:1px solid var(--border);background:rgba(0,0,0,.2)}
+.usage-label{font:600 12px var(--sans);color:var(--muted)}
+.usage-track{flex:1;height:6px;background:var(--dim);border-radius:3px;overflow:hidden;position:relative}
+.usage-used{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:3px;width:30%}
+.usage-est{position:absolute;left:30%;top:0;height:100%;
+  background:rgba(56,189,248,.35);border-radius:3px;width:20%}
+.usage-legend{display:flex;gap:12px;font-size:11px;color:var(--muted);white-space:nowrap}
+.usage-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* modal footer */
+.mfoot{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:14px 24px;border-top:1px solid var(--border)}
+.mbtn{padding:10px 20px;border-radius:var(--r);font:600 13px var(--sans);cursor:pointer;transition:all .15s}
+.mbtn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.mbtn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.mbtn-primary{background:var(--accent);border:0;color:#0A1223}
+.mbtn-primary:hover{filter:brightness(1.08)}
+
+/* producer notes panel (shown when toggle on) */
+.notes-panel{background:var(--dim);border-radius:var(--r);padding:14px;display:none}
+.notes-panel.on{display:block}
+.notes-panel textarea{min-height:120px;background:var(--card);font-size:13px}
+
+/* scrollbars */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
 </style>
 </head>
 <body>
-<header>
-  <h1>Turn a lesson into a narrated video</h1>
-  <p>Paste your lesson text. The studio plans the scenes, draws the slides, records the narration and joins it into one video.</p>
-</header>
-<main>
-  <section aria-label="Lesson input">
-    <label for="text">Lesson text</label>
-    <textarea id="text" placeholder="Paste at least a few sentences..."></textarea>
-    <div class="row">
-      <div><label for="topic">Video title (optional)</label><input id="topic"></div>
-      <div><label for="engine">Narration voice</label>
-        <select id="engine"><option value="mock">Test tone (no speech)</option><option value="kokoro">Kokoro (natural)</option><option value="espeak">eSpeak (robotic)</option></select></div>
+
+<!-- ── top bar ── -->
+<div class="topbar">
+  <div class="logo">ai<span>video</span></div>
+  <div class="topbar-sub">Studio</div>
+  <div class="topbar-right">
+    <span class="claude-pill" id="claudePill">✦ Claude active</span>
+  </div>
+</div>
+
+<!-- ── workspace ── -->
+<div class="workspace">
+
+  <!-- LEFT: source -->
+  <div class="lpanel">
+    <div class="phead">Source</div>
+    <div class="lbody">
+      <div>
+        <label for="text">Lesson text</label>
+        <textarea id="text" placeholder="Paste your lesson, article, notes or any text here…"></textarea>
+      </div>
+      <div>
+        <label for="topic">Title (optional — auto-detected if blank)</label>
+        <input id="topic" placeholder="e.g. Introduction to Malaria">
+      </div>
+      <div>
+        <label>Narration voice</label>
+        <select id="engine">
+          <option value="mock">Test tone (silent — fastest)</option>
+          <option value="espeak">eSpeak (robotic, free)</option>
+          <option value="kokoro">Kokoro (natural — pip install kokoro)</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:7px;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="claude" style="width:auto;accent-color:var(--purple)">
+          <span>Use Claude for smarter scene planning</span>
+        </label>
+      </div>
+
+      <!-- customise button -->
+      <button class="cust-btn" id="custBtn" onclick="openModal()">
+        <span>🎬</span> Customise Video Overview
+      </button>
+
+      <!-- current settings summary -->
+      <div id="settingsSummary" style="font-size:11px;color:var(--muted);
+        background:var(--dim);border-radius:8px;padding:8px 12px;line-height:1.8"></div>
+
+      <button class="gen-btn" id="go">▶&nbsp; Generate now</button>
+
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      <div id="statusMsg"></div>
+
+      <button class="cust-btn" id="sampleBtn" onclick="loadSample()"
+        style="margin-top:4px;font-size:12px;opacity:.7">Load sample lesson</button>
     </div>
-    <label><input type="checkbox" id="claude" style="width:auto;margin-right:8px">Plan scenes with Claude (needs an API key on the server)</label>
-    <button id="go">Create video</button><button class="btn2" id="sample" type="button">Load sample lesson</button>
-    <div id="status" role="status" aria-live="polite"></div>
-  </section>
-  <section aria-label="Result">
-    <div id="empty">Your video and scene list will appear here.</div>
-    <div id="result" hidden>
-      <video id="player" controls></video>
-      <div class="timeline" id="timeline" aria-label="Scene timeline"></div>
-      <div class="meta" id="total"></div>
-      <ol class="scenes" id="scenes"></ol>
+  </div>
+
+  <!-- CENTRE: viewer -->
+  <div class="viewer" id="viewer">
+    <div class="empty" id="emptyState">
+      <div class="eicon">🎬</div>
+      <h2>Your Studio is ready</h2>
+      <p>Paste lesson text, customise your video style, and click Generate.</p>
     </div>
-  </section>
-</main>
+    <div id="result" style="display:none;display:flex;flex-direction:column;gap:14px">
+
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="video">🎬 Video</button>
+        <button class="tab" data-tab="scenes">📋 Scenes</button>
+        <button class="tab" data-tab="fc">🃏 Flashcards</button>
+        <button class="tab" data-tab="quiz">❓ Quiz</button>
+        <button class="tab" data-tab="mindmap">🗺 Mind Map</button>
+        <button class="tab" data-tab="ig">📊 Infographic</button>
+        <button class="tab" data-tab="report">📄 Report</button>
+      </div>
+
+      <div class="tp on" id="tp-video">
+        <video id="player" controls></video>
+        <div class="timeline" id="timeline"></div>
+        <div class="tl-info" id="tlInfo"></div>
+      </div>
+
+      <div class="tp" id="tp-scenes"><div class="slist" id="sceneList"></div></div>
+
+      <div class="tp" id="tp-fc">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Click a card to flip and reveal the answer.</p>
+        <div class="fcgrid" id="fcGrid"></div>
+        <p style="font-size:11px;color:var(--dim);margin-top:8px" id="fcCount"></p>
+      </div>
+
+      <div class="tp" id="tp-quiz"><div id="quizBox"></div></div>
+
+      <div class="tp" id="tp-mindmap">
+        <div class="imgwrap"><img id="mmImg" src="" alt="Mind Map"></div>
+      </div>
+
+      <div class="tp" id="tp-ig">
+        <div class="igwrap"><img id="igImg" src="" alt="Infographic"></div>
+      </div>
+
+      <div class="tp" id="tp-report">
+        <iframe class="rframe" id="reportFrame" title="Report"></iframe>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: studio panel -->
+  <div class="rpanel">
+    <div class="studio-title">Studio</div>
+    <div class="studio-sub">One-click outputs from your lesson</div>
+    <div class="outgrid">
+      <div class="oc on" data-tab="video"><div class="oc-icon">🎬</div><div class="oc-name">Video</div><div class="oc-desc">Narrated slide video</div></div>
+      <div class="oc" data-tab="mindmap"><div class="oc-icon">🗺</div><div class="oc-name">Mind Map</div><div class="oc-desc">Visual concept graph</div></div>
+      <div class="oc" data-tab="fc"><div class="oc-icon">🃏</div><div class="oc-name">Flashcards</div><div class="oc-desc">Active recall cards</div></div>
+      <div class="oc" data-tab="quiz"><div class="oc-icon">❓</div><div class="oc-name">Quiz</div><div class="oc-desc">Test your knowledge</div></div>
+      <div class="oc" data-tab="ig"><div class="oc-icon">📊</div><div class="oc-name">Infographic</div><div class="oc-desc">Key facts at a glance</div></div>
+      <div class="oc" data-tab="report"><div class="oc-icon">📄</div><div class="oc-name">Report</div><div class="oc-desc">Full HTML document</div></div>
+      <div class="oc" data-tab="scenes" style="grid-column:1/-1"><div class="oc-icon">📋</div><div class="oc-name">Scene Plan</div><div class="oc-desc">All scenes, dialogue & takeaways</div></div>
+    </div>
+
+    <div class="rstudio-sec" id="dlSec" style="display:none">
+      <div class="rstudio-sec-title">Downloads</div>
+      <a class="dlbtn" id="dlVideo" href="#" download="lesson.mp4"><span>🎬</span> Video (MP4)</a>
+      <a class="dlbtn" id="dlMM" href="#" download="mindmap.png"><span>🗺</span> Mind Map (PNG)</a>
+      <a class="dlbtn" id="dlIG" href="#" download="infographic.png"><span>📊</span> Infographic (PNG)</a>
+      <a class="dlbtn" id="dlRpt" href="#" target="_blank"><span>📄</span> Report (HTML)</a>
+    </div>
+
+    <div class="rstudio-sec" id="statsSec" style="display:none">
+      <div class="rstudio-sec-title">Stats</div>
+      <div id="statsBox" style="font-size:12px;color:var(--muted);line-height:2.1"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     CUSTOMISE VIDEO MODAL
+═══════════════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="maybeClose(event)">
+ <div class="modal" id="modal">
+
+  <div class="mhead">
+    <h2><span>🎬</span> Customise Video Overview</h2>
+    <button class="mclose" onclick="closeModal()">✕</button>
+  </div>
+
+  <div class="mbody">
+
+    <!-- Format -->
+    <div>
+      <div class="msec-title">Format</div>
+      <div class="fmt-cards" id="fmtCards">
+        <div class="fmtc" data-fmt="brief">
+          <div class="fmtc-name">Short <span class="fmtc-badge">New!</span></div>
+          <div class="fmtc-desc">A bite-sized overview to quickly grasp the core ideas from your sources</div>
+        </div>
+        <div class="fmtc on" data-fmt="deep_dive">
+          <div class="fmtc-name">Explainer <span style="font-size:16px;vertical-align:middle">🔗</span></div>
+          <div class="fmtc-desc">A structured, comprehensive overview that connects the dots within your sources</div>
+        </div>
+        <div class="fmtc" data-fmt="critique">
+          <div class="fmtc-name">Critique <span style="font-size:14px;vertical-align:middle">🔍</span></div>
+          <div class="fmtc-desc">An expert review of your sources offering constructive feedback</div>
+        </div>
+        <div class="fmtc" data-fmt="debate">
+          <div class="fmtc-name">Debate <span style="font-size:14px;vertical-align:middle">⚖️</span></div>
+          <div class="fmtc-desc">A thoughtful debate illuminating different perspectives on your sources</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language + Length -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+      <div>
+        <label>Language</label>
+        <select id="langSel" style="margin-top:0">
+          <option value="en">English</option>
+          <option value="fr">French</option>
+          <option value="es">Spanish</option>
+          <option value="de">German</option>
+          <option value="pt">Portuguese</option>
+          <option value="ar">Arabic</option>
+          <option value="zh">Chinese</option>
+          <option value="hi">Hindi</option>
+        </select>
+      </div>
+      <div>
+        <label>Length</label>
+        <div class="pills" style="margin-top:0">
+          <button class="pill" data-len="short">Short</button>
+          <button class="pill on" data-len="default">Default</button>
+          <button class="pill" data-len="long">Long</button>
+        </div>
+      </div>
+      <div>
+        <label>Sources</label>
+        <div style="font-size:13px;color:var(--muted);padding:5px 0">1 source</div>
+      </div>
+    </div>
+
+    <!-- Visual style -->
+    <div>
+      <div class="msec-title">Choose visual style</div>
+      <div class="style-scroll" id="styleScroll">
+        <div class="style-card on" data-style="auto">
+          <div class="style-preview sp-auto">🌌</div>
+          <div class="style-name">Auto-select</div>
+          <div class="sc-check">✓</div>
+        </div>
+        <div class="style-card" data-style="classic">
+          <div class="style-preview sp-classic" style="color:#333">✏️</div>
+          <div class="style-name">Classic</div>
+          <div class="sc-check">✓</div>
+        </div>
+        <div class="style-card" data-style="whiteboard">
+          <div class="style-preview sp-whiteboard">🖊</div>
+          <div class="style-name">Whiteboard</div>
+          <div class="sc-check">✓</div>
+        </div>
+        <div class="style-card" data-style="kawaii">
+          <div class="style-preview sp-kawaii">🌸</div>
+          <div class="style-name">Kawaii</div>
+          <div class="sc-check">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Quality -->
+    <div>
+      <div class="msec-title">Animation quality</div>
+      <div class="fmt-cards" id="qualityCards">
+        <div class="fmtc" data-quality="draft">
+          <div class="fmtc-name">⚡ Draft</div>
+          <div class="fmtc-desc">Static slides — fastest, good for quick previews</div>
+        </div>
+        <div class="fmtc on" data-quality="standard">
+          <div class="fmtc-name">✨ Standard</div>
+          <div class="fmtc-desc">Animated text reveals, smart topic diagrams, smooth build-up</div>
+        </div>
+        <div class="fmtc" data-quality="cinematic">
+          <div class="fmtc-name">🎬 Cinematic</div>
+          <div class="fmtc-desc">Full animation + crossfade transitions between every scene</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What should the video focus on -->
+    <div>
+      <div class="msec-title">What should the video focus on?</div>
+      <div class="topic-chips" id="topicChips">
+        <div style="font-size:12px;color:var(--dim)">Paste your text first to get suggestions…</div>
+      </div>
+      <div class="custom-topic">
+        <label><span>✏️</span> Customised topic</label>
+        <input id="focusInput" placeholder="Describe your own focus…">
+      </div>
+    </div>
+
+    <!-- Review producer notes -->
+    <div>
+      <div class="toggle-row">
+        <div>
+          <div class="msec-title" style="margin-bottom:4px">Review producer notes</div>
+          <p>Preview and edit the scene narration before creating your video. Draft notes will be ready after planning.</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="reviewToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="notes-panel" id="notesPanel">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+          Producer notes (editable — these become the narration):
+        </div>
+        <textarea id="notesArea" placeholder="Generate a plan first to see notes here…"></textarea>
+      </div>
+    </div>
+
+  </div><!-- .mbody -->
+
+  <!-- AI usage bar -->
+  <div class="ai-usage">
+    <span class="usage-label">AI usage</span>
+    <div class="usage-track">
+      <div class="usage-used"></div>
+      <div class="usage-est"></div>
+    </div>
+    <div class="usage-legend">
+      <span><span class="usage-dot" style="background:var(--accent)"></span>Already used</span>
+      <span><span class="usage-dot" style="background:rgba(56,189,248,.35)"></span>Estimated use</span>
+    </div>
+  </div>
+
+  <div class="mfoot">
+    <button class="mbtn mbtn-secondary" onclick="closeModal()">Generate later</button>
+    <button class="mbtn mbtn-primary" onclick="closeModalAndGenerate()">Generate now</button>
+  </div>
+
+ </div><!-- .modal -->
+</div><!-- .overlay -->
+
+
 <script>
-const $=id=>document.getElementById(id);
-const SAMPLE="Malaria is a disease spread by the bite of infected mosquitoes. It affects many children in Ghana every year. Early testing and treatment save lives. Sleeping under insecticide treated bed nets reduces infection. Clinics can test patients quickly with a rapid blood test. Communities that share health education see fewer severe cases.";
-$("sample").onclick=()=>{$("text").value=SAMPLE};
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-$("go").onclick=async()=>{
-  $("go").disabled=true;$("status").textContent="Starting...";
-  try{
-    const r=await fetch("/api/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      text:$("text").value,topic:$("topic").value||null,engine:$("engine").value,use_claude:$("claude").checked})});
-    if(!r.ok){throw new Error((await r.json()).detail||"Request failed")}
-    const job=await r.json();await poll(job.id);
-  }catch(e){$("status").textContent="Could not create the video: "+e.message}
-  $("go").disabled=false;
+// ── state ─────────────────────────────────────────────────────────────────────
+const cfg = {
+  format: "deep_dive",
+  length: "default",
+  style:  "auto",
+  focus:  "",
+  lang:   "en",
+  quality: "standard",
 };
+let quizCtx = {};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ── health ─────────────────────────────────────────────────────────────────────
+fetch("/api/health").then(r=>r.json()).then(d=>{
+  if(d.claude_planning) $("claudePill").classList.add("on");
+});
+
+// ── sample ─────────────────────────────────────────────────────────────────────
+const SAMPLE = `Malaria is a disease spread by the bite of infected mosquitoes. It affects millions of children in sub-Saharan Africa every year. Early testing and treatment save lives. Sleeping under insecticide-treated bed nets significantly reduces infection rates. Clinics can test patients quickly using a rapid diagnostic blood test. Communities that actively share health education see fewer severe cases and deaths. Clean surroundings help eliminate the stagnant water where mosquitoes breed. Vaccines such as RTS,S provide partial protection and are now recommended by the WHO for use in high-risk areas. Combination approaches — nets, treatment, education, and vaccines — work better together than any single measure alone.`;
+function loadSample(){ $("text").value = SAMPLE; updateSummary(); }
+
+// ── modal ─────────────────────────────────────────────────────────────────────
+function openModal(){
+  loadTopicSuggestions();
+  $("overlay").classList.add("open");
+}
+function closeModal(){ $("overlay").classList.remove("open"); }
+function maybeClose(e){ if(e.target === $("overlay")) closeModal(); }
+function closeModalAndGenerate(){ closeModal(); generate(); }
+
+// ── quality cards ─────────────────────────────────────────────────────────────
+document.querySelectorAll(".fmtc[data-quality]").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll(".fmtc[data-quality]").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+    cfg.quality = c.dataset.quality;
+    updateSummary();
+  };
+});
+
+// ── format cards ──────────────────────────────────────────────────────────────
+document.querySelectorAll(".fmtc").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll(".fmtc").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+    cfg.format = c.dataset.fmt;
+    updateSummary();
+  };
+});
+
+// ── length pills ──────────────────────────────────────────────────────────────
+document.querySelectorAll(".pill[data-len]").forEach(p=>{
+  p.onclick=()=>{
+    document.querySelectorAll(".pill[data-len]").forEach(x=>x.classList.remove("on"));
+    p.classList.add("on");
+    cfg.length = p.dataset.len;
+    updateSummary();
+  };
+});
+
+// ── style cards ───────────────────────────────────────────────────────────────
+document.querySelectorAll(".style-card").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll(".style-card").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+    cfg.style = c.dataset.style;
+    updateSummary();
+  };
+});
+
+// ── language ─────────────────────────────────────────────────────────────────
+$("langSel").onchange = ()=>{ cfg.lang = $("langSel").value; updateSummary(); };
+
+// ── focus input ───────────────────────────────────────────────────────────────
+$("focusInput").oninput = ()=>{ cfg.focus = $("focusInput").value; };
+
+// ── topic chips ───────────────────────────────────────────────────────────────
+async function loadTopicSuggestions(){
+  const text = $("text").value.trim();
+  if(text.length < 30) return;
+  const r = await fetch("/api/suggest-topics",{method:"POST",
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+  if(!r.ok) return;
+  const {topics} = await r.json();
+  const chips = $("topicChips");
+  chips.innerHTML = topics.map((t,i)=>
+    `<div class="topic-chip" data-topic="${esc(t)}" onclick="selectChip(this)">
+      <span class="chip-icon">${["🎯","📌","💡"][i]||"•"}</span> ${esc(t)}
+     </div>`
+  ).join("");
+}
+
+function selectChip(el){
+  document.querySelectorAll(".topic-chip").forEach(c=>c.classList.remove("on"));
+  el.classList.add("on");
+  const t = el.dataset.topic;
+  $("focusInput").value = t;
+  cfg.focus = t;
+}
+
+// ── review producer notes ─────────────────────────────────────────────────────
+$("reviewToggle").onchange = ()=>{
+  $("notesPanel").classList.toggle("on", $("reviewToggle").checked);
+};
+
+// ── summary label ─────────────────────────────────────────────────────────────
+const FMT_LABELS = {deep_dive:"Explainer",brief:"Short",critique:"Critique",debate:"Debate"};
+const STYLE_LABELS = {auto:"Auto-select",classic:"Classic",whiteboard:"Whiteboard",kawaii:"Kawaii"};
+const QUALITY_LABELS = {draft:"⚡ Draft",standard:"✨ Standard",cinematic:"🎬 Cinematic"};
+function updateSummary(){
+  const parts = [
+    `📐 ${FMT_LABELS[cfg.format]||cfg.format}`,
+    `📏 ${cfg.length.charAt(0).toUpperCase()+cfg.length.slice(1)}`,
+    `🎨 ${STYLE_LABELS[cfg.style]||cfg.style}`,
+    `${QUALITY_LABELS[cfg.quality]||cfg.quality}`,
+  ];
+  if(cfg.focus) parts.push(`🎯 "${cfg.focus.slice(0,30)}${cfg.focus.length>30?"...":""}"`);
+  $("settingsSummary").innerHTML = parts.join("&nbsp;&nbsp;·&nbsp;&nbsp;");
+}
+updateSummary();
+
+// ── tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
+  document.querySelectorAll(".tp").forEach(p=>p.classList.toggle("on",p.id==="tp-"+name));
+  document.querySelectorAll(".oc").forEach(c=>c.classList.toggle("on",c.dataset.tab===name));
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
+document.querySelectorAll(".oc").forEach(c=>c.onclick=()=>switchTab(c.dataset.tab));
+
+// ── generate ──────────────────────────────────────────────────────────────────
+$("go").onclick = generate;
+async function generate(){
+  const text = $("text").value.trim();
+  if(text.length < 20){ setStatus("Please paste more lesson text first."); return; }
+  $("go").disabled = true;
+  $("emptyState").style.display = "none";
+  $("result").style.display = "none";
+  setStatus("Starting…");
+  startProgress();
+  try{
+    const r = await fetch("/api/jobs",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        text,
+        topic: $("topic").value||null,
+        engine: $("engine").value,
+        use_claude: $("claude").checked,
+        format: cfg.format,
+        length: cfg.length,
+        focus:  cfg.focus || $("focusInput").value || "",
+        style:  cfg.style,
+        quality: cfg.quality,
+      })
+    });
+    if(!r.ok) throw new Error((await r.json()).detail||"Request failed");
+    const job = await r.json();
+    await poll(job.id);
+  }catch(e){
+    setStatus("Error: "+e.message);
+    $("emptyState").style.display = "flex";
+  }
+  $("go").disabled = false;
+  endProgress();
+}
+
+let _pi = null;
+function startProgress(){
+  let p=0; if(_pi)clearInterval(_pi);
+  _pi = setInterval(()=>{ p=Math.min(p+Math.random()*2.5,88); $("progFill").style.width=p+"%"; },500);
+}
+function endProgress(){
+  if(_pi)clearInterval(_pi);
+  $("progFill").style.width="100%";
+  setTimeout(()=>$("progFill").style.width="0",900);
+}
+function setStatus(m){ $("statusMsg").textContent=m; }
+
 async function poll(id){
   for(;;){
-    const j=await (await fetch("/api/jobs/"+id)).json();
-    $("status").textContent=j.status;
-    if(j.state==="done")return show(j);
-    if(j.state==="error")return;
-    await new Promise(r=>setTimeout(r,800));
+    const j = await (await fetch("/api/jobs/"+id)).json();
+    setStatus(j.status);
+    if(j.state==="done"){ render(j); return; }
+    if(j.state==="error") return;
+    await new Promise(r=>setTimeout(r,900));
   }
 }
-function show(j){
-  $("empty").hidden=true;$("result").hidden=false;
-  const v=$("player");v.src=j.video_url;v.load();
-  const tl=$("timeline");tl.innerHTML="";
+
+// ── render all outputs ────────────────────────────────────────────────────────
+function render(j){
+  $("result").style.display = "flex";
+  renderVideo(j); renderScenes(j); renderFlashcards(j);
+  renderQuiz(j);  renderMindmap(j); renderIG(j); renderReport(j);
+  renderDownloads(j); renderStats(j);
+  switchTab("video");
+}
+
+// VIDEO
+function renderVideo(j){
+  const v=$("player");
+  v.src=j.video_url; v.load();
+  const tl=$("timeline"); tl.innerHTML="";
   j.timeline.forEach((t,i)=>{
-    const s=document.createElement("div");s.className="seg "+(t.kind==="quiz"?"quiz":"");s.style.flex=t.duration;
-    s.title=t.title;s.textContent=i+1;s.onclick=()=>{v.currentTime=t.start;v.play()};tl.appendChild(s);
+    const s=document.createElement("div");
+    s.className="seg "+(t.kind||"");
+    s.style.flex=t.duration;
+    s.title=t.title+(t.takeaway?"\n→ "+t.takeaway:"");
+    s.textContent=i+1;
+    s.onclick=()=>{ v.currentTime=t.start; v.play(); };
+    tl.appendChild(s);
   });
-  $("total").textContent=j.timeline.length+" scenes, "+Math.round(j.total_seconds)+" seconds. Select a block to jump to that scene.";
-  $("scenes").innerHTML=j.plan.scenes.map((s,i)=>`<li><h3>${esc(s.title)}</h3><div class="meta">Scene ${i+1}, ${esc(s.kind)}, ${j.timeline[i].duration}s</div>`+
-    (s.bullets.length?`<ul>${s.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:"")+
-    (s.question?`<p>${esc(s.question)}</p>`:"")+`<p class="narr">${esc(s.narration)}</p></li>`).join("");
-  v.ontimeupdate=()=>{[...tl.children].forEach((c,i)=>{const t=j.timeline[i];c.classList.toggle("active",v.currentTime>=t.start&&v.currentTime<t.start+t.duration)})};
+  const mins=Math.floor(j.total_seconds/60), secs=Math.round(j.total_seconds%60);
+  $("tlInfo").textContent=j.timeline.length+" scenes · "+(mins>0?mins+"m ":"")+secs+"s · click a block to jump";
+  v.ontimeupdate=()=>{
+    [...tl.children].forEach((c,i)=>{
+      const t=j.timeline[i];
+      c.classList.toggle("on",v.currentTime>=t.start&&v.currentTime<t.start+t.duration);
+    });
+  };
+}
+
+// SCENES
+function renderScenes(j){
+  $("sceneList").innerHTML = j.plan.scenes.map((s,i)=>{
+    const bullets = s.bullets.length
+      ? `<ul>${s.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>` : "";
+    const takeaway = s.takeaway
+      ? `<div class="takeaway">💡 ${esc(s.takeaway)}</div>` : "";
+    const dl = s.dialogue&&s.dialogue.length
+      ? `<div class="dialogue">${s.dialogue.map(d=>
+          `<div class="dline host-${d.host.toLowerCase()}">
+            <span class="dname">${esc(d.name||d.host)}</span>
+            <span class="dtext">${esc(d.text)}</span>
+          </div>`).join("")}</div>` : "";
+    const quiz = s.kind==="quiz"&&s.question
+      ? `<div style="margin-top:8px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:5px">${esc(s.question)}</div>
+          ${(s.options||[]).map((o,oi)=>`<div style="font-size:12px;padding:3px 0;
+            color:${oi===s.answer_index?'var(--green)':'var(--muted)'}">${'ABCD'[oi]}. ${esc(o)} ${oi===s.answer_index?'✓':''}</div>`).join("")}
+         </div>` : "";
+    return `<div class="scard ${s.kind}">
+      <h3>${esc(s.title)}</h3>
+      <div class="scard-meta">Scene ${i+1} · ${s.kind} · ${j.timeline[i]?.duration||0}s</div>
+      ${bullets}${quiz}${dl}${takeaway}
+    </div>`;
+  }).join("");
+}
+
+// FLASHCARDS
+function renderFlashcards(j){
+  const cards=[];
+  j.plan.scenes.forEach(s=>{ if(s.flashcards) cards.push(...s.flashcards); });
+  const g=$("fcGrid");
+  if(!cards.length){
+    g.innerHTML=`<p style="color:var(--muted);font-size:13px">No flashcards in this plan. Use Explainer format.</p>`;
+    return;
+  }
+  g.innerHTML=cards.map((c,i)=>
+    `<div class="fci" onclick="this.classList.toggle('flip')">
+      <div class="fci-inner">
+        <div class="fcf">${esc(c.front)}</div>
+        <div class="fcb">${esc(c.back)}</div>
+      </div>
+    </div>`).join("");
+  $("fcCount").textContent=cards.length+" cards";
+}
+
+// QUIZ
+function renderQuiz(j){
+  const qs=j.plan.scenes.filter(s=>s.kind==="quiz"&&s.question);
+  const box=$("quizBox");
+  if(!qs.length){
+    box.innerHTML=`<p style="color:var(--muted);font-size:13px">No quiz questions. Use Explainer format.</p>`;
+    return;
+  }
+  quizCtx={scenes:qs,idx:0,score:0,done:false,_all:qs};
+  drawQuestion(box);
+}
+function drawQuestion(box){
+  const ctx=quizCtx;
+  if(ctx.idx>=ctx.scenes.length){
+    const pct=Math.round(ctx.score/ctx.scenes.length*100);
+    box.innerHTML=`<div style="text-align:center;padding:36px 20px">
+      <div style="font-size:48px;margin-bottom:14px">${pct>=80?'🎉':pct>=50?'👍':'📚'}</div>
+      <div style="font:700 24px var(--sans);margin-bottom:6px">${ctx.score}/${ctx.scenes.length} correct</div>
+      <div style="color:var(--muted);margin-bottom:20px">${pct}% — ${pct>=80?'Excellent!':pct>=50?'Good work!':'Keep at it!'}</div>
+      <button onclick="quizCtx.idx=0;quizCtx.score=0;drawQuestion($('quizBox'))"
+        style="padding:9px 22px;background:var(--accent);color:#0A1223;border:0;border-radius:8px;
+        font:700 13px var(--sans);cursor:pointer">Try again</button></div>`;
+    return;
+  }
+  const s=ctx.scenes[ctx.idx];
+  ctx.done=false;
+  box.innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Question ${ctx.idx+1} of ${ctx.scenes.length} · Score: ${ctx.score}</div>
+    <div class="qquestion">${esc(s.question)}</div>
+    <div class="qopts" id="qopts">
+      ${(s.options||[]).map((o,i)=>`<button class="qopt" onclick="answerQ(${i},${s.answer_index})">
+        <strong>${'ABCD'[i]}.</strong> ${esc(o)}</button>`).join("")}
+    </div>
+    <div id="qfb" style="font-size:13px;min-height:1.5em"></div>`;
+}
+function answerQ(chosen,correct){
+  if(quizCtx.done) return;
+  quizCtx.done=true;
+  document.querySelectorAll(".qopt").forEach((o,i)=>{
+    if(i===correct) o.classList.add("correct");
+    else if(i===chosen) o.classList.add("wrong");
+  });
+  if(chosen===correct) quizCtx.score++;
+  const fb=$("qfb");
+  fb.textContent=chosen===correct?"✓ Correct!":"✗ Answer: "+["A","B","C","D"][correct];
+  fb.style.color=chosen===correct?"var(--green)":"var(--red)";
+  setTimeout(()=>{ quizCtx.idx++; drawQuestion($("quizBox")); },1700);
+}
+
+// MINDMAP / INFOGRAPHIC / REPORT
+function renderMindmap(j){ if(j.mindmap_url) $("mmImg").src=j.mindmap_url+"?t="+Date.now(); }
+function renderIG(j){ if(j.infographic_url) $("igImg").src=j.infographic_url+"?t="+Date.now(); }
+function renderReport(j){ if(j.report_url) $("reportFrame").src=j.report_url+"?t="+Date.now(); }
+
+// DOWNLOADS
+function renderDownloads(j){
+  if(j.video_url)       $("dlVideo").href=j.video_url;
+  if(j.mindmap_url)     $("dlMM").href=j.mindmap_url;
+  if(j.infographic_url) $("dlIG").href=j.infographic_url;
+  if(j.report_url)      $("dlRpt").href=j.report_url;
+  $("dlSec").style.display="block";
+}
+
+// STATS
+function renderStats(j){
+  const sc=j.plan.scenes;
+  const kinds=sc.reduce((a,s)=>{ a[s.kind]=(a[s.kind]||0)+1; return a; },{});
+  const cards=sc.reduce((a,s)=>a+(s.flashcards||[]).length,0);
+  const mins=Math.floor(j.total_seconds/60), secs=Math.round(j.total_seconds%60);
+  $("statsBox").innerHTML=`
+    <div>🎬 ${mins>0?mins+"m ":""}${secs}s video</div>
+    <div>📋 ${sc.length} scenes (${Object.entries(kinds).map(([k,v])=>v+" "+k).join(", ")})</div>
+    <div>🃏 ${cards} flashcards</div>
+    <div>📐 ${(FMT_LABELS[j.format]||j.format)}</div>
+    <div>🎨 ${(STYLE_LABELS[j.style]||j.style||"auto")}</div>
+    <div>${(QUALITY_LABELS[j.quality]||j.quality||"standard")}</div>`;
+  $("statsSec").style.display="block";
 }
 </script>
 </body>

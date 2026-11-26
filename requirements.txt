@@ -2,5 +2,9 @@ Pillow>=10.0
 fastapi>=0.110
 uvicorn>=0.29
 python-multipart>=0.0.9
-anthropic>=0.40        # optional: Claude-powered scene planning
-# kokoro>=0.9          # optional: real open-source TTS (pip install kokoro soundfile)
+anthropic>=0.40
+numpy>=1.24
+moviepy==2.1.1
+opencv-python-headless>=4.8
+matplotlib>=3.8
+# kokoro>=0.9  # optional: natural TTS (pip install kokoro soundfile)
