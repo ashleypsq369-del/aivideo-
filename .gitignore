@@ -1,7 +1,48 @@
 __pycache__/
 *.pyc
 .venv/
+# Generated outputs
 output/
+*.mp4
+*.wav
+*.srt
+*.vtt
+
+# Fix / check scripts (developer scratch files)
+fix*.py
+check*.py
+scan*.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+env/
+
+# Secrets
+.env
+*.env
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# DB (auto-created on startup)
+output/jobs.db
+output/jobs_state.json
 .env
 *.mp4
 *.wav
