@@ -117,19 +117,16 @@ def synth_kokoro(text: str, path: str, voice: str = "af_heart", **_) -> str:
 # ── auto-detect ───────────────────────────────────────────────────────────────
 
 def _detect_engine() -> str:
-    """Return the best available engine without hanging on model load."""
+    """Return the best available engine.
+    Uses pip metadata to check for kokoro — never imports it (avoids model-download hang)."""
     env = os.environ.get("AIVIDEO_TTS_ENGINE", "").lower()
     if env in ("kokoro", "espeak", "mock"):
         return env
-    # Check kokoro via a fast subprocess with timeout (avoids hanging on model load)
-    import subprocess as _sp, sys as _sys
+    # Check kokoro via pip metadata only (no import, no timeout risk)
     try:
-        result = _sp.run(
-            [_sys.executable, "-c", "import kokoro; print('ok')"],
-            capture_output=True, text=True, timeout=15
-        )
-        if result.returncode == 0 and "ok" in result.stdout:
-            return "kokoro"
+        import importlib.metadata
+        importlib.metadata.version("kokoro")
+        return "kokoro"   # installed — use it
     except Exception:
         pass
     if shutil.which("espeak-ng") or shutil.which("espeak"):
