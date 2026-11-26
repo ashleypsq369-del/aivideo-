@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aivideo Studio</title>
+<style>
+:root{--paper:#F2F5F3;--ink:#14213D;--muted:#5B6578;--green:#1F6F5C;--gold:#E3A72F;--line:#D3DBD6;--white:#fff;
+--serif:"Iowan Old Style",Palatino,"Palatino Linotype",Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--paper:#0F1722;--ink:#E8EDF3;--muted:#9AA6B8;--green:#4FB89C;--line:#26324A;--white:#172033}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--sans)}
+header{padding:28px clamp(16px,4vw,48px) 8px}
+h1{font:600 clamp(28px,4vw,42px)/1.1 var(--serif);margin:0 0 6px}
+header p{margin:0;color:var(--muted);max-width:60ch}
+main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(16px,3vw,40px);padding:20px clamp(16px,4vw,48px) 60px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+label{display:block;font-weight:600;margin:14px 0 6px}
+textarea,input,select{width:100%;font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+textarea{min-height:260px;resize:vertical}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{font:600 16px var(--sans);background:var(--green);color:#fff;border:0;border-radius:8px;padding:12px 20px;margin-top:18px;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.btn2{background:transparent;color:var(--green);border:1px solid var(--green);margin-left:8px}
+#status{margin-top:14px;color:var(--muted);min-height:1.5em}
+#empty{border:1px dashed var(--line);border-radius:12px;padding:40px 24px;color:var(--muted)}
+video{width:100%;border-radius:12px;background:#000;aspect-ratio:16/9}
+.timeline{display:flex;height:34px;margin:16px 0 4px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.seg{display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;background:var(--green);border-right:2px solid var(--paper);cursor:pointer;min-width:0;overflow:hidden}
+.seg.quiz{background:var(--gold);color:#14213D}.seg.active{outline:3px solid var(--ink);outline-offset:-3px}
+.scenes{margin:18px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.scenes li{padding:14px 0;border-bottom:1px solid var(--line)}
+.scenes h3{font:600 20px var(--serif);margin:0}
+.meta{color:var(--muted);font-size:13px}
+.scenes ul{margin:6px 0 0 18px;padding:0}
+.narr{margin:8px 0 0;color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <h1>Turn a lesson into a narrated video</h1>
+  <p>Paste your lesson text. The studio plans the scenes, draws the slides, records the narration and joins it into one video.</p>
+</header>
+<main>
+  <section aria-label="Lesson input">
+    <label for="text">Lesson text</label>
+    <textarea id="text" placeholder="Paste at least a few sentences..."></textarea>
+    <div class="row">
+      <div><label for="topic">Video title (optional)</label><input id="topic"></div>
+      <div><label for="engine">Narration voice</label>
+        <select id="engine"><option value="mock">Test tone (no speech)</option><option value="kokoro">Kokoro (natural)</option><option value="espeak">eSpeak (robotic)</option></select></div>
+    </div>
+    <label><input type="checkbox" id="claude" style="width:auto;margin-right:8px">Plan scenes with Claude (needs an API key on the server)</label>
+    <button id="go">Create video</button><button class="btn2" id="sample" type="button">Load sample lesson</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </section>
+  <section aria-label="Result">
+    <div id="empty">Your video and scene list will appear here.</div>
+    <div id="result" hidden>
+      <video id="player" controls></video>
+      <div class="timeline" id="timeline" aria-label="Scene timeline"></div>
+      <div class="meta" id="total"></div>
+      <ol class="scenes" id="scenes"></ol>
+    </div>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const SAMPLE="Malaria is a disease spread by the bite of infected mosquitoes. It affects many children in Ghana every year. Early testing and treatment save lives. Sleeping under insecticide treated bed nets reduces infection. Clinics can test patients quickly with a rapid blood test. Communities that share health education see fewer severe cases.";
+$("sample").onclick=()=>{$("text").value=SAMPLE};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+$("go").onclick=async()=>{
+  $("go").disabled=true;$("status").textContent="Starting...";
+  try{
+    const r=await fetch("/api/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      text:$("text").value,topic:$("topic").value||null,engine:$("engine").value,use_claude:$("claude").checked})});
+    if(!r.ok){throw new Error((await r.json()).detail||"Request failed")}
+    const job=await r.json();await poll(job.id);
+  }catch(e){$("status").textContent="Could not create the video: "+e.message}
+  $("go").disabled=false;
+};
+async function poll(id){
+  for(;;){
+    const j=await (await fetch("/api/jobs/"+id)).json();
+    $("status").textContent=j.status;
+    if(j.state==="done")return show(j);
+    if(j.state==="error")return;
+    await new Promise(r=>setTimeout(r,800));
+  }
+}
+function show(j){
+  $("empty").hidden=true;$("result").hidden=false;
+  const v=$("player");v.src=j.video_url;v.load();
+  const tl=$("timeline");tl.innerHTML="";
+  j.timeline.forEach((t,i)=>{
+    const s=document.createElement("div");s.className="seg "+(t.kind==="quiz"?"quiz":"");s.style.flex=t.duration;
+    s.title=t.title;s.textContent=i+1;s.onclick=()=>{v.currentTime=t.start;v.play()};tl.appendChild(s);
+  });
+  $("total").textContent=j.timeline.length+" scenes, "+Math.round(j.total_seconds)+" seconds. Select a block to jump to that scene.";
+  $("scenes").innerHTML=j.plan.scenes.map((s,i)=>`<li><h3>${esc(s.title)}</h3><div class="meta">Scene ${i+1}, ${esc(s.kind)}, ${j.timeline[i].duration}s</div>`+
+    (s.bullets.length?`<ul>${s.bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>`:"")+
+    (s.question?`<p>${esc(s.question)}</p>`:"")+`<p class="narr">${esc(s.narration)}</p></li>`).join("");
+  v.ontimeupdate=()=>{[...tl.children].forEach((c,i)=>{const t=j.timeline[i];c.classList.toggle("active",v.currentTime>=t.start&&v.currentTime<t.start+t.duration)})};
+}
+</script>
+</body>
+</html>
