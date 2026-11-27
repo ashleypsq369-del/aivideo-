@@ -420,6 +420,11 @@ video{width:100%;border-radius:var(--r);background:#000;aspect-ratio:16/9;displa
       <div class="rstudio-sec-title">Stats</div>
       <div id="statsBox" style="font-size:12px;color:var(--muted);line-height:2.1"></div>
     </div>
+
+    <div class="rstudio-sec" id="historySec">
+      <div class="rstudio-sec-title">Recent Videos</div>
+      <div id="historyBox" style="font-size:12px;color:var(--muted)">Loading...</div>
+    </div>
   </div>
 </div>
 
@@ -946,6 +951,30 @@ function renderStats(j){
     <div>${(QUALITY_LABELS[j.quality]||j.quality||"standard")}</div>`;
   $("statsSec").style.display="block";
 }
+
+// HISTORY
+async function loadHistory(){
+  try{
+    const vids = await (await fetch("/api/videos?limit=8")).json();
+    const box = $("historyBox");
+    if(!vids||!vids.length){ box.textContent="No videos yet."; return; }
+    box.innerHTML = vids.map(v=>{
+      const date = v.created_at ? v.created_at.substring(0,10) : "";
+      const dur  = v.total_seconds ? Math.round(v.total_seconds)+"s" : "";
+      const topic = (v.topic||"Untitled").substring(0,28);
+      const jobId = v.job_id||"";
+      const url   = jobId ? `/files/${jobId}/lesson.mp4` : "#";
+      return `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:var(--text);font-size:12px">${esc(topic)}</div>
+          <div style="color:var(--dim);font-size:10px">${date} ${dur}</div>
+        </div>
+        <a href="${url}" download="lesson.mp4" style="color:var(--accent);font-size:11px;text-decoration:none">↓</a>
+      </div>`;
+    }).join("");
+  }catch(e){ $("historyBox").textContent="Could not load history."; }
+}
+loadHistory();
 </script>
 </body>
 </html>

@@ -132,6 +132,13 @@ def get_job_endpoint(job_id: str):
     return job
 
 
+@app.get("/api/videos")
+def video_history_endpoint(limit: int = 20):
+    """Return recently generated videos from the DB index."""
+    from aivideo.db import video_history
+    return video_history(limit=limit)
+
+
 @app.get("/api/jobs")
 def list_jobs_endpoint(limit: int = 20, offset: int = 0):
     """List recent jobs — used by the history panel."""
