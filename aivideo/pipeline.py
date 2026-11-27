@@ -229,7 +229,23 @@ def build_video(text, outdir="output", topic=None, engine="auto", voice=None,
     with open(os.path.join(outdir, "timeline.json"), "w") as f:
         json.dump(timeline, f, indent=2)
 
-    # ── Stage 7: QA report ────────────────────────────────────────────────────
+    # ── Stage 7: QA report + captions ────────────────────────────────────────
+    say("Generating captions...")
+    try:
+        from .captions import generate_captions
+        # Add narration to timeline entries for caption generation
+        for i, (entry, scene) in enumerate(zip(timeline, plan.scenes)):
+            entry["narration"] = scene.narration or scene.title
+        cap_result = generate_captions(
+            timeline,
+            os.path.join(outdir, "audio"),
+            outdir,
+            use_whisper=False,
+        )
+    except Exception as e:
+        print(f"[pipeline] captions failed ({e}), continuing")
+        cap_result = {}
+
     say("Running QA checks...")
     qa = _run_qa(outdir, timeline, t, analysis, storyboard)
     with open(os.path.join(outdir, "07_qa_report.json"), "w") as f:
@@ -254,6 +270,7 @@ def build_video(text, outdir="output", topic=None, engine="auto", voice=None,
         "style":         style,
         "quality":       quality,
         "qa":            qa,
+        "captions":      cap_result,
     }
 
 

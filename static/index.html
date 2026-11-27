@@ -360,7 +360,9 @@ video{width:100%;border-radius:var(--r);background:#000;aspect-ratio:16/9;displa
       </div>
 
       <div class="tp on" id="tp-video">
-        <video id="player" controls></video>
+        <video id="player" controls>
+          <track id="captionTrack" kind="subtitles" srclang="en" label="English" default>
+        </video>
         <div class="timeline" id="timeline"></div>
         <div class="tl-info" id="tlInfo"></div>
       </div>
@@ -407,6 +409,8 @@ video{width:100%;border-radius:var(--r);background:#000;aspect-ratio:16/9;displa
     <div class="rstudio-sec" id="dlSec" style="display:none">
       <div class="rstudio-sec-title">Downloads</div>
       <a class="dlbtn" id="dlVideo" href="#" download="lesson.mp4"><span>🎬</span> Video (MP4)</a>
+      <a class="dlbtn" id="dlSRT" href="#" download="captions.srt"><span>💬</span> Captions (SRT)</a>
+      <a class="dlbtn" id="dlVTT" href="#" download="captions.vtt"><span>💬</span> Captions (VTT)</a>
       <a class="dlbtn" id="dlMM" href="#" download="mindmap.png"><span>🗺</span> Mind Map (PNG)</a>
       <a class="dlbtn" id="dlIG" href="#" download="infographic.png"><span>📊</span> Infographic (PNG)</a>
       <a class="dlbtn" id="dlRpt" href="#" target="_blank"><span>📄</span> Report (HTML)</a>
@@ -791,6 +795,11 @@ function render(j){
 function renderVideo(j){
   const v=$("player");
   v.src=j.video_url; v.load();
+  // Load caption track if available
+  if(j.vtt_url){
+    const track=$("captionTrack");
+    if(track){ track.src=j.vtt_url; track.default=true; }
+  }
   const tl=$("timeline"); tl.innerHTML="";
   j.timeline.forEach((t,i)=>{
     const s=document.createElement("div");
@@ -914,6 +923,8 @@ function renderReport(j){ if(j.report_url) $("reportFrame").src=j.report_url+"?t
 // DOWNLOADS
 function renderDownloads(j){
   if(j.video_url)       $("dlVideo").href=j.video_url;
+  if(j.srt_url)         { $("dlSRT").href=j.srt_url; $("dlSRT").style.display="flex"; }
+  if(j.vtt_url)         { $("dlVTT").href=j.vtt_url; $("dlVTT").style.display="flex"; }
   if(j.mindmap_url)     $("dlMM").href=j.mindmap_url;
   if(j.infographic_url) $("dlIG").href=j.infographic_url;
   if(j.report_url)      $("dlRpt").href=j.report_url;

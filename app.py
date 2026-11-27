@@ -70,6 +70,7 @@ def _run(job_id: str, req: JobRequest) -> None:
                 video_path,
                 total_seconds=result.get("total_seconds", 0),
                 scene_count=len(result.get("timeline", [])),
+                quality_score=result.get("qa", {}).get("overall_score"),
             )
     except Exception as e:
         import traceback as _tb
@@ -90,6 +91,8 @@ def _job_response(job_id: str) -> dict:
         job.setdefault("mindmap_url",     f"{base}/mindmap.png")
         job.setdefault("infographic_url", f"{base}/infographic.png")
         job.setdefault("report_url",      f"{base}/report.html")
+        job.setdefault("srt_url",         f"{base}/captions.srt")
+        job.setdefault("vtt_url",         f"{base}/captions.vtt")
     return job
 
 
