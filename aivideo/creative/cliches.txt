@@ -1,0 +1,29 @@
+# Common analogy clichés to avoid — one per line
+# The system will tell Claude to avoid these when generating analogies
+building blocks
+puzzle pieces
+journey
+rollercoaster
+double-edged sword
+tip of the iceberg
+paradigm shift
+think outside the box
+low-hanging fruit
+perfect storm
+at the end of the day
+it takes a village
+two sides of the same coin
+butterfly effect
+domino effect
+chain reaction
+snowball effect
+needle in a haystack
+piece of cake
+walk in the park
+uphill battle
+level playing field
+blank slate
+clean slate
+melting pot
+like a virus
+spread like wildfire
