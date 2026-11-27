@@ -54,7 +54,7 @@ _DEFAULT_MODEL = None
 def _model() -> str:
     global _DEFAULT_MODEL
     if _DEFAULT_MODEL is None:
-        _DEFAULT_MODEL = os.environ.get("AIVIDEO_MODEL", "claude-sonnet-4-5")
+        _DEFAULT_MODEL = os.environ.get("AIVIDEO_MODEL", "claude-opus-4-5")
     return _DEFAULT_MODEL
 
 
@@ -238,10 +238,10 @@ def call(
             kwargs: dict = dict(
                 model=model_name,
                 max_tokens=max_tokens,
-                temperature=temperature,
                 system=system,
                 messages=final_messages,
             )
+            # temperature is not supported in all anthropic SDK versions — skip it
             if tools:
                 kwargs["tools"] = tools
                 kwargs["tool_choice"] = tool_choice
