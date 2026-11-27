@@ -296,9 +296,22 @@ video{width:100%;border-radius:var(--r);background:#000;aspect-ratio:16/9;displa
       <div>
         <label>Narration voice</label>
         <select id="engine">
+          <option value="edge_tts" selected>Microsoft Neural (natural, recommended)</option>
+          <option value="kokoro">Kokoro AI (offline, natural)</option>
+          <option value="espeak">eSpeak (robotic, offline)</option>
           <option value="mock">Test tone (silent — fastest)</option>
-          <option value="espeak">eSpeak (robotic, free)</option>
-          <option value="kokoro">Kokoro (natural — pip install kokoro)</option>
+        </select>
+      </div>
+      <div id="voiceRow">
+        <label>Voice</label>
+        <select id="voice">
+          <option value="en-US-AriaNeural">Aria — Warm American Female</option>
+          <option value="en-US-JennyNeural">Jenny — Friendly American Female</option>
+          <option value="en-US-GuyNeural">Guy — Natural American Male</option>
+          <option value="en-GB-SoniaNeural">Sonia — British Female</option>
+          <option value="en-GB-RyanNeural">Ryan — British Male</option>
+          <option value="en-AU-NatashaNeural">Natasha — Australian Female</option>
+          <option value="en-IN-NeerjaNeural">Neerja — Indian Female</option>
         </select>
       </div>
       <div>
@@ -723,6 +736,7 @@ async function generate(){
         text,
         topic: $("topic").value||null,
         engine: $("engine").value,
+        voice:  $("voice") ? $("voice").value : null,
         use_claude: $("claude").checked,
         format: cfg.format,
         length: cfg.length,

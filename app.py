@@ -29,7 +29,7 @@ app = FastAPI(title="aivideo Studio")
 class JobRequest(BaseModel):
     text: str
     topic: str | None = None
-    engine: str = "kokoro"          # kokoro is the production default
+    engine: str = "edge_tts"       # edge_tts is the production default (natural human voice)
     voice: str | None = None
     use_claude: bool = False
     format: str = "deep_dive"       # deep_dive | brief | critique | debate
