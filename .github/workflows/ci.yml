@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  MOCK_LLM: "1"           # never call real APIs in CI
+  AIVIDEO_TTS_ENGINE: "mock"  # no network TTS in CI
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Smoke-test ingest
+        run: python test_ingest_smoke.py
+
+      - name: Smoke-test M2
+        run: python test_m2.py
+
+      - name: Smoke-test M3
+        run: python test_m3.py
