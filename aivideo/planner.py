@@ -129,7 +129,15 @@ def plan_deep_dive(text, topic, length="default"):
     chunks = [sents[i:i + spc] for i in range(0, len(sents), spc)]
     for chunk in chunks:
         joined = " ".join(chunk)
-        title  = " ".join(w.capitalize() for w in _keywords(joined, 2)) or topic
+        # Build a meaningful title from the first sentence rather than keyword pairs
+        first_sent = chunk[0].rstrip(".!?")
+        # Extract the core noun phrase: take up to 6 words, prefer the first clause
+        title_words = [w for w in first_sent.split()
+                       if w.lower() not in STOPWORDS and len(w) > 2][:5]
+        title = " ".join(w.capitalize() for w in title_words) if title_words else topic
+        # Cap title at 50 chars
+        if len(title) > 50:
+            title = title[:47] + "..."
         bullets = [_short_bullet(s) for s in chunk[:bpc]]
         tk = _takeaway(chunk)
         scenes.append(Scene(
