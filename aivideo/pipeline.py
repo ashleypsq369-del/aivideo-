@@ -174,10 +174,14 @@ def build_video(text, outdir="output", topic=None, engine="auto", voice=None,
     use_anim = quality in ("standard", "cinematic")
     if use_anim:
         try:
-            from .animator import ANIMATION_AVAILABLE
-            use_anim = ANIMATION_AVAILABLE
+            from .renderer import make_animated_clip as _test_import  # noqa
+            use_anim = True
         except Exception:
-            use_anim = False
+            try:
+                from .animator import ANIMATION_AVAILABLE
+                use_anim = ANIMATION_AVAILABLE
+            except Exception:
+                use_anim = False
 
     clips, timeline, t = [], [], 0.0
     os.makedirs(os.path.join(outdir, "audio"), exist_ok=True)
@@ -193,8 +197,8 @@ def build_video(text, outdir="output", topic=None, engine="auto", voice=None,
         clip = os.path.join(outdir, "clips", f"c_{i:02d}.mp4")
 
         if use_anim:
-            from .animator import make_animated_clip
-            dur = make_animated_clip(scene, img, wav, clip,
+            from .renderer import make_animated_clip
+            dur = make_animated_clip(scene, wav, clip,
                                      style=style, quality=quality)
         else:
             dur = video.make_clip(img, wav, clip)

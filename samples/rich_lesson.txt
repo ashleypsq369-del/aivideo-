@@ -1,0 +1,19 @@
+The Human Immune System: How Your Body Fights Disease
+
+The immune system is the body's defence network against pathogens — bacteria, viruses, fungi and parasites that can cause illness. Without it, even a minor infection could be fatal.
+
+There are two main branches of immunity. The innate immune system is the first line of defence. It responds immediately to any foreign invader using physical barriers like skin, chemical signals like inflammation, and white blood cells called neutrophils that engulf and destroy pathogens. This response is fast but non-specific — it treats all threats the same way.
+
+The adaptive immune system is slower but far more powerful. It learns to recognise specific pathogens and mounts a targeted attack. The key players are B cells, which produce antibodies — proteins that bind to pathogens and neutralise them, and T cells, which either directly kill infected cells or help coordinate the entire response.
+
+When a pathogen enters the body, antigen-presenting cells capture fragments of it and display them to T cells. Helper T cells then activate B cells to produce antibodies, while killer T cells hunt down and destroy infected body cells. This process takes 7 to 14 days on first exposure.
+
+The most remarkable feature of the adaptive immune system is memory. After an infection is cleared, memory B and T cells remain in the body for years or even decades. If the same pathogen appears again, the immune response is 10 to 100 times faster and stronger than the first time. This is the biological principle behind vaccination.
+
+Vaccines work by introducing a harmless version of a pathogen — either a weakened form, a killed form, or just a key protein — to trigger an immune response without causing disease. The body builds memory cells. When the real pathogen arrives, the immune system already knows how to defeat it. Vaccines have eliminated smallpox, nearly eliminated polio, and dramatically reduced deaths from measles, tetanus and many other diseases.
+
+However, the immune system can malfunction. In autoimmune diseases such as Type 1 diabetes, rheumatoid arthritis and lupus, the immune system mistakenly attacks the body's own healthy cells. In allergies, it overreacts to harmless substances like pollen or peanuts. In immunodeficiency conditions, including HIV/AIDS, the immune system is weakened and cannot fight infections effectively.
+
+Lifestyle choices significantly affect immune function. Regular moderate exercise, adequate sleep of 7 to 9 hours per night, a diet rich in vegetables and fruits, and stress management all support immune health. Chronic stress raises cortisol levels, which suppresses the immune response over time. Smoking and excessive alcohol both damage immune cells directly.
+
+Understanding the immune system is essential for modern medicine. Every vaccine, every cancer immunotherapy, every organ transplant protocol, and every treatment for autoimmune disease depends on this knowledge. The immune system is not just a defence mechanism — it is the foundation of human health.
