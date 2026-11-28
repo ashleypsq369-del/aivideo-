@@ -29,13 +29,14 @@ app = FastAPI(title="aivideo Studio")
 class JobRequest(BaseModel):
     text: str
     topic: str | None = None
-    engine: str = "edge_tts"       # edge_tts is the production default (natural human voice)
-    voice: str | None = None
+    engine: str = "edge_tts"
+    voice: str | None = "en-US-AriaNeural"
     use_claude: bool = False
-    format: str = "deep_dive"       # deep_dive | brief | critique | debate
-    length: str = "default"         # short | default | long
+    format: str = "deep_dive"
+    length: str = "default"
     focus: str = ""
-    style: str = "auto"             # auto | classic | whiteboard | kawaii
+    style: str = "auto"
+    quality: str = "standard"
     quality: str = "standard"       # draft | standard | cinematic
 
 
@@ -109,6 +110,9 @@ def create_job_endpoint(req: JobRequest):
         raise HTTPException(400, "Invalid length.")
     if req.quality not in ("draft", "standard", "cinematic"):
         raise HTTPException(400, "Invalid quality.")
+    # Never allow mock engine from UI — it produces beeping
+    if req.engine == "mock":
+        req = req.model_copy(update={"engine": "edge_tts", "voice": "en-US-AriaNeural"})
 
     job_id = uuid.uuid4().hex[:10]
     src_hash = hashlib.sha256(req.text.encode()).hexdigest()[:16]
